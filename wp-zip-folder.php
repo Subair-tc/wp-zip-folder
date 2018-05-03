@@ -2,46 +2,51 @@
 /*
 Plugin Name: WP-zipfolder
 Plugin URI: https://github.com/Subair-tc/
-Description: Downlaod a folder as zip
+Description: Downlaod an upload folder as zip
 Version: 0.1.0
 Author: Subair TC
 Author URI: https://github.com/Subair-tc/
 */
 
-class FlxZipArchive extends ZipArchive {
-
+class WPZipArchive extends ZipArchive {
+    /**
+    * Construct the plugin
+    *
+    * @since 0.1.0   
+    */
     public function __construct() {
 
 		add_action( 'plugins_loaded', array( $this, 'initialize_plugin' ) );
         ob_start();
 	}
-
-
-
+    /**
+    * Initialise plugin ( all hooks used are inside)
+    *
+    * @since 0.1.0   
+    */
     public function initialize_plugin(){
         add_action( 'wp_ajax_download_as_zip', array( $this, 'download_as_zip' ) );
-        add_action( 'wp_enqueue_scripts', array( $this, 'add_script' ) );
         add_action( 'admin_menu', array( $this,'wp_zip_folder_menu' ) );
 
 
     }
 
-    function add_script() {
-
-        wp_register_script( 'download-as-zip', plugins_url( '/js/download-as-zip.js', __FILE__ ), true );
-        wp_enqueue_script( 'download-as-zip' );
-        wp_localize_script('download-as-zip', 'Ajax', array(
-            'ajaxurl' => admin_url( 'admin-ajax.php' ),
-        ));
-    }
-
+    /**
+    * Add settings menu
+    *
+    * @since 0.1.0   
+    */
     public function wp_zip_folder_menu() {
         if ( function_exists('add_options_page') ) {
             add_options_page('ZIP Folder', 'Zip Folder', 'manage_options', basename(__FILE__), array( $this,'wp_zip_folder_page' ));
         }
     }
 
-
+    /**
+    * settings menu callback
+    *
+    * @since 0.1.0   
+    */
     public function wp_zip_folder_page() {
 
         if (isset($_POST['download_folder'])) {
@@ -58,7 +63,6 @@ class FlxZipArchive extends ZipArchive {
 
         $upload = wp_upload_dir();
         $dirs = glob( $upload['basedir'] . '/*' , GLOB_ONLYDIR);
-        echo'<pre>'; var_dump( $dirs); echo'</pre>';
         ?>
         <form method="post" action="<?php echo esc_attr($_SERVER["REQUEST_URI"]); ?>">
             <?php
@@ -83,11 +87,21 @@ class FlxZipArchive extends ZipArchive {
 
     }
 
+    /**
+    * function for creatingnew directory
+    *
+    * @since 0.1.0   
+    */
     public function addDir($location, $name) {
         $this->addEmptyDir($name);
          $this->addDirDo($location, $name);
-     }
+    }
 
+    /**
+    * get all sub directories
+    *
+    * @since 0.1.0   
+    */
     private function addDirDo($location, $name) {
         $name .= '/';         $location .= '/';
       // Read all Files in Dir
@@ -100,13 +114,17 @@ class FlxZipArchive extends ZipArchive {
         }
     }
 
+    /**
+    * Make the zip and download
+    *
+    * @since 0.1.0   
+    */
     public function download_as_zip( $the_folder ){
         
-        var_dump($the_folder);
+        //var_dump($the_folder);
         if( !$the_folder ) {
-            echo 'Error: Could not create a zip archive';
+            echo 'Error: Invalid Path';
         }
-        $the_folder = "D:/Subair/study/wordpress-4.9.5/wordpress/wp-content/uploads/cfdb7_uploads";
         $upload = wp_upload_dir();
         $zip_file_name = $upload['basedir'].'/archived_name-'.current_time('timestamp').'.zip';
 
@@ -128,14 +146,8 @@ class FlxZipArchive extends ZipArchive {
                 ob_end_clean();
                 @readfile($zip_file_name);
             }
-            
-            //http headers for Downloads
-           
 
-            //do something else after download like delete file
             unlink($zip_file_name);
-            echo '<br/>'.$zip_file_name.'<br/>';
-            echo 'zipped successfully';
 
         }
         else  { echo 'Could not create a zip archive';}
@@ -143,7 +155,5 @@ class FlxZipArchive extends ZipArchive {
     }
 }
 
-$FlxZipArchive = new FlxZipArchive();
-
-
-
+// Create an object for nitialisation.
+$WPZipArchive = new WPZipArchive();
