@@ -128,10 +128,10 @@ class WPZipArchive extends ZipArchive {
         $upload = wp_upload_dir();
         $zip_file_name = $upload['basedir'].'/archived_name-'.current_time('timestamp').'.zip';
 
-        $za = new FlxZipArchive;
-        $res = $za->open($zip_file_name, ZipArchive::CREATE);
+       // $za = new WPZipArchive;
+        $res = $this->open($zip_file_name, ZipArchive::CREATE);
         if($res === TRUE)    {
-            $za->addDir($the_folder, basename($the_folder)); $za->close();
+            $this->addDir($the_folder, basename($the_folder)); $this->close();
             
             if ( ! headers_sent()) {
                 header("Content-Disposition: attachment; filename=\"" . basename($zip_file_name) . "\"");
