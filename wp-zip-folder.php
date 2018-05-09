@@ -3,10 +3,16 @@
 Plugin Name: WP-zipfolder
 Plugin URI: https://github.com/Subair-tc/
 Description: Downlaod an upload folder as zip
-Version: 0.1.0
+Version: 0.1.1
 Author: Subair TC
 Author URI: https://github.com/Subair-tc/
 */
+
+/* Set constant path to the plugin directory. */
+define( 'WP_ZIP_FOLDER_MULTI_PATH', plugin_dir_path( __FILE__ ) );
+
+/* Set the constant path to the plugin's includes directory. */
+define( 'WP_ZIP_FOLDER_INC', WP_ZIP_FOLDER_MULTI_PATH . trailingslashit( 'inc' ), true );
 
 class WPZipArchive extends ZipArchive {
     /**
@@ -25,10 +31,26 @@ class WPZipArchive extends ZipArchive {
     * @since 0.1.0   
     */
     public function initialize_plugin(){
+        add_action( 'admin_enqueue_scripts',   array( $this,'add_scripts') );
         add_action( 'wp_ajax_download_as_zip', array( $this, 'download_as_zip' ) );
         add_action( 'admin_menu', array( $this,'wp_zip_folder_menu' ) );
 
 
+    }
+    
+     /**
+    * Added required JavaScripts and CSS files
+    *
+    * @since 0.1.1  
+    */
+
+    public function add_scripts() {
+    
+        wp_register_style( 'zip-folder-default', plugins_url( '/css/default.css', __FILE__ ) );
+	    wp_enqueue_style( 'zip-folder-default' );
+
+        wp_register_script( 'php_file_tree_jquery', plugins_url( '/js/php_file_tree_jquery.js', __FILE__ ), true );
+        wp_enqueue_script( 'php_file_tree_jquery' );
     }
 
     /**
@@ -62,6 +84,11 @@ class WPZipArchive extends ZipArchive {
         }
 
         $upload = wp_upload_dir();
+
+        $folders = new PHPFileTree();
+        echo $folders->php_file_tree( $upload['basedir'], "javascript:alert('You clicked on [link]');" );
+
+
         $dirs = glob( $upload['basedir'] . '/*' , GLOB_ONLYDIR);
         ?>
         <form method="post" action="<?php echo esc_attr($_SERVER["REQUEST_URI"]); ?>">
@@ -157,3 +184,10 @@ class WPZipArchive extends ZipArchive {
 
 // Create an object for nitialisation.
 $WPZipArchive = new WPZipArchive();
+
+/**
+* Include php filte tee classs
+*
+* @since 0.1.1  
+*/
+require_once( WP_ZIP_FOLDER_INC . 'php_file_tree.php' );
