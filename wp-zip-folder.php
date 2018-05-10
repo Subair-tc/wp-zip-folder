@@ -34,6 +34,7 @@ class WPZipArchive extends ZipArchive {
         add_action( 'admin_enqueue_scripts',   array( $this,'add_scripts') );
         add_action( 'wp_ajax_download_as_zip', array( $this, 'download_as_zip' ) );
         add_action( 'admin_menu', array( $this,'wp_zip_folder_menu' ) );
+        add_action( 'wp_ajax_download_file', array( $this,'force_download_a_file' ) );
 
 
     }
@@ -48,9 +49,14 @@ class WPZipArchive extends ZipArchive {
     
         wp_register_style( 'zip-folder-default', plugins_url( '/css/default.css', __FILE__ ) );
 	    wp_enqueue_style( 'zip-folder-default' );
+        wp_register_style( 'zip-folder-css', plugins_url( '/css/zip-folder.css', __FILE__ ) );
+	    wp_enqueue_style( 'zip-folder-css' );
 
         wp_register_script( 'php_file_tree_jquery', plugins_url( '/js/php_file_tree_jquery.js', __FILE__ ), true );
         wp_enqueue_script( 'php_file_tree_jquery' );
+        wp_localize_script('php_file_tree_jquery', 'Ajax', array(
+		'ajaxurl' => admin_url( 'admin-ajax.php' ),
+	));
     }
 
     /**
@@ -71,7 +77,7 @@ class WPZipArchive extends ZipArchive {
     */
     public function wp_zip_folder_page() {
 
-        if (isset($_POST['download_folder'])) {
+        if (isset($_POST['sub_directories'])) {
 
 			//wp_nonce check
 			check_admin_referer('wp_zip_folder_options');
@@ -83,6 +89,14 @@ class WPZipArchive extends ZipArchive {
             
         }
 
+        ?>
+        <div class="zip-container">
+
+            <div class="row">
+
+
+        <?php
+
         $upload = wp_upload_dir();
 
         $folders = new PHPFileTree();
@@ -90,13 +104,19 @@ class WPZipArchive extends ZipArchive {
 
 
         $dirs = glob( $upload['basedir'] . '/*' , GLOB_ONLYDIR);
+
+
         ?>
-        <form method="post" action="<?php echo esc_attr($_SERVER["REQUEST_URI"]); ?>">
+        
+        <form namme="download-folder" id="download-folder"  method="post" action="<?php echo esc_attr($_SERVER["REQUEST_URI"]); ?>">
             <?php
                 if ( function_exists('wp_nonce_field') ) {
                     wp_nonce_field('wp_zip_folder_options');
                 }	
             ?>
+            <input type="hidden" id="sub_directories" name="sub_directories" value=""  />
+
+            <?php /*
             <select name="sub_directories">
             <?php
             foreach( $dirs as $dir ) {
@@ -105,17 +125,20 @@ class WPZipArchive extends ZipArchive {
 
             ?>
             </select>
+            */ ?>
 
-            <input type="submit" name="download_folder" id="download_folder" />
+            <input type="hidden" name="download_folder" id="download_folder" />
 
         </form>
+        </div>
+        </div>
 
         <?php
 
     }
 
     /**
-    * function for creatingnew directory
+    * function for creating new directory
     *
     * @since 0.1.0   
     */
@@ -135,7 +158,6 @@ class WPZipArchive extends ZipArchive {
         $dir = opendir ($location);
         while ($file = readdir($dir))    {
             if ($file == '.' || $file == '..') continue;
-          // Rekursiv, If dir: FlxZipArchive::addDir(), else ::File();
             $do = (filetype( $location . $file) == 'dir') ? 'addDir' : 'addFile';
             $this->$do($location . $file, $name . $file);
         }
@@ -153,31 +175,48 @@ class WPZipArchive extends ZipArchive {
             echo 'Error: Invalid Path';
         }
         $upload = wp_upload_dir();
-        $zip_file_name = $upload['basedir'].'/archived_name-'.current_time('timestamp').'.zip';
-
-       // $za = new WPZipArchive;
-        $res = $this->open($zip_file_name, ZipArchive::CREATE);
-        if($res === TRUE)    {
-            $this->addDir($the_folder, basename($the_folder)); $this->close();
-            
+        if( ! is_dir( $the_folder ) ) {
             if ( ! headers_sent()) {
-                header("Content-Disposition: attachment; filename=\"" . basename($zip_file_name) . "\"");
+                header("Content-Disposition: attachment; filename=\"" . basename($the_folder) . "\"");
                 header("Content-Type: application/force-download");
-                header("Content-Length: " . filesize($zip_file_name));
+                header("Content-Length: " . filesize($the_folder));
                 header("Connection: close");
             } else {
                 echo 'headers already send';
             }
-
-             while (ob_get_level()) {
+                while (ob_get_level()) {
                 ob_end_clean();
-                @readfile($zip_file_name);
+                @readfile($the_folder);
             }
+            
+        } else{ 
+            $zip_file_name = $upload['basedir'].'/archived_name-'.current_time('timestamp').'.zip';
 
-            unlink($zip_file_name);
+            $res = $this->open($zip_file_name, ZipArchive::CREATE);
+            if($res === TRUE)    {
+                $this->addDir($the_folder, basename($the_folder)); $this->close();
+                
+                if ( ! headers_sent()) {
+                    header("Content-Disposition: attachment; filename=\"" . basename($zip_file_name) . "\"");
+                    header("Content-Type: application/force-download");
+                    header("Content-Length: " . filesize($zip_file_name));
+                    header("Connection: close");
+                } else {
+                    echo 'headers already send';
+                }
+
+                while (ob_get_level()) {
+                    ob_end_clean();
+                    @readfile($zip_file_name);
+                }
+
+                unlink($zip_file_name);
+
+            }
+            else  { echo 'Could not create a zip archive';}
 
         }
-        else  { echo 'Could not create a zip archive';}
+        
 
     }
 }
@@ -191,3 +230,12 @@ $WPZipArchive = new WPZipArchive();
 * @since 0.1.1  
 */
 require_once( WP_ZIP_FOLDER_INC . 'php_file_tree.php' );
+
+
+function custom_menu_order(){
+    global $submenu;
+    var_dump($submenu); exit;
+
+   
+}
+//add_action('_admin_menu', 'custom_menu_order');

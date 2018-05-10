@@ -20,7 +20,7 @@ class PHPFileTree {
 
 
 
-	public function php_file_tree($directory, $return_link, $extensions = array()) {
+	public function php_file_tree($directory, $return_link='', $extensions = array()) {
 		// Generates a valid XHTML list of all directories, sub-directories, and files in $directory
 		// Remove trailing slash
 		if( substr($directory, -1) == "/" ) $directory = substr($directory, 0, strlen($directory) - 1);
@@ -59,15 +59,16 @@ class PHPFileTree {
 				if( $this_file != "." && $this_file != ".." ) {
 					if( is_dir("$directory/$this_file") ) {
 						// Directory
-						$php_file_tree .= "<li class=\"pft-directory\"><a href=\"#\">" . htmlspecialchars($this_file) . "</a>";
+						$php_file_tree .= "<li class=\"pft-directory\"><a path=\"".$directory."/".$this_file."\" href=\"#\">" . htmlspecialchars($this_file) . "</a>";
 						$php_file_tree .= $this->php_file_tree_dir("$directory/$this_file", $return_link ,$extensions, false);
 						$php_file_tree .= "</li>";
 					} else {
 						// File
 						// Get extension (prepend 'ext-' to prevent invalid classes from extensions that begin with numbers)
 						$ext = "ext-" . substr($this_file, strrpos($this_file, ".") + 1); 
+						$file_path = "$directory/" . urlencode($this_file);
 						$link = str_replace("[link]", "$directory/" . urlencode($this_file), $return_link);
-						$php_file_tree .= "<li class=\"pft-file " . strtolower($ext) . "\"><a href=\"$link\">" . htmlspecialchars($this_file) . "</a></li>";
+						$php_file_tree .= "<li  class=\"pft-file " . strtolower($ext) . "\"><a file=\"".$file_path."\" href=\"$link\">" . htmlspecialchars($this_file) . "</a></li>";
 					}
 				}
 			}
